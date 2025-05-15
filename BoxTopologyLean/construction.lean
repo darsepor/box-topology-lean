@@ -6,16 +6,21 @@ import Mathlib
 namespace BoxTopology
 open Set Filter TopologicalSpace Topology
 
-#check continuous_induced_rng
 
 
-instance boxTopology {ι : Type*} {Y : ι → Type*} [t : ∀ i, TopologicalSpace (Y i)] :
+variable {ι : Type*} {Y : ι → Type*} [t : ∀ i, TopologicalSpace (Y i)] [TopologicalSpace ((i : ι) → Y i)]
+
+def box {ι : Type*} (Y : ι → Type*) := ((i : ι) → Y i)
+
+
+def boxTopology {ι : Type*} (Y : ι → Type*) [t : ∀ i, TopologicalSpace (Y i)] :
     TopologicalSpace ((i : ι) → Y i) :=
   .generateFrom <|
   /-{B : Set ((i : ι) → Y i)|∀ (idx : ι), IsOpen ((fun (point : (k : ι) → Y k) => point idx) '' B)∧
     B = Set.pi (Set.univ : Set ι) (fun idx => (fun point => point idx) '' B) }-/
     { B | ∃ (U : ∀ i, Set (Y i)), (∀ i, IsOpen (U i)) ∧ B = Set.pi Set.univ U }
 
+instance : TopologicalSpace (box Y):= boxTopology Y
 /--/
 instance boxTopology' {ι : Type*} {Y : ι → Type*} [t: ∀ i, TopologicalSpace (Y i)] :
     TopologicalSpace ((i : ι) → Y i) where
@@ -38,16 +43,20 @@ theorem boxTopology_eq_boxTopology' {ι : Type*} {Y : ι → Type*} [t: ∀ i, T
   sorry
 -/
 lemma open_preimage_box {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
-  [t : ∀ i : ι, TopologicalSpace (Y i)] {k : ι} (s : Set (Y k)) (f := fun (x : (i : ι) → Y i) => x k):
-  IsOpen s → IsOpen (f⁻¹' s) := by
+  [t : ∀ i : ι, TopologicalSpace (Y i)] {k : ι} (s : Set (Y k)):
+  IsOpen s → IsOpen ((fun (x : box Y) => x k) ⁻¹' s) := by
+  let f := fun (x : box Y) => x k
   intro op
   rw[IsOpen]
   rw[TopologicalSpace.IsOpen]
-  rw[boxTopology]
+
+  rw[instTopologicalSpaceBox]
+  rw [boxTopology]
   rw[generateFrom]
-  simp
+
   refine GenerateOpen.basic (f ⁻¹' s) ?_
-  simp
+
+
 
   use fun i => if h : i = k then h.symm ▸ s else Set.univ --gemini
   simp
@@ -61,17 +70,42 @@ lemma open_preimage_box {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
     · split_ifs
       exact isOpen_univ
 
-  · rw[Set.preimage]
+  · ext x
+    simp
 
-    sorry
+    constructor
+    · intro inside
+
+      rw [@univ_pi_eq_iInter]
+      simp
+      intro idx
+      by_cases ieqk : idx = k
+      · rw [ieqk]
+        simp
+        exact inside
+      · simp [ieqk]
 
 
-lemma box_continuity_transfer  {ι : Type*} {Y : ι → Type*}
+    · intro cond
+      rw [@univ_pi_eq_iInter] at cond
+      simp at cond
+      specialize cond k
+      simp at cond
+      exact cond
+
+
+
+lemma box_continuity_transfer  {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
     [t : ∀ i : ι, TopologicalSpace (Y i)] (j: ι):
-    Continuous fun (point : (k : ι) → Y k) => point j := by
-  sorry
+    Continuous fun (point : (box Y)) => point j := by
+  refine continuous_def.mpr ?_
+
+  intro s h
+  exact open_preimage_box _ h
+
 
 --lemma identity_continuity
+#check continuous_induced_rng
 
 lemma box_topology_is_finer {ι : Type*} {Y : ι → Type*}
           [t : ∀ i : ι, TopologicalSpace (Y i)] :
