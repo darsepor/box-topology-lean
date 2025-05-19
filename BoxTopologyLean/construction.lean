@@ -21,7 +21,8 @@ def boxTopology {ι : Type*} (Y : ι → Type*) [t : ∀ i, TopologicalSpace (Y 
     { B | ∃ (U : ∀ i, Set (Y i)), (∀ i, IsOpen (U i)) ∧ B = Set.pi Set.univ U }
 
 instance : TopologicalSpace (box Y):= boxTopology Y
-/--/
+--instance : TopologicalSpace ((i : ι) → Y i) := Pi.topologicalSpace
+/-
 instance boxTopology' {ι : Type*} {Y : ι → Type*} [t: ∀ i, TopologicalSpace (Y i)] :
     TopologicalSpace ((i : ι) → Y i) where
   IsOpen B := ∀ (point : (i :ι)  → Y i), point ∈ B → ∃ (U : (i:ι) → Set (Y i)),
@@ -34,14 +35,8 @@ instance boxTopology' {ι : Type*} {Y : ι → Type*} [t: ∀ i, TopologicalSpac
   isOpen_sUnion := by
 
   isOpen_inter := sorry
-
-theorem boxTopology_eq_boxTopology' {ι : Type*} {Y : ι → Type*} [t: ∀ i, TopologicalSpace (Y i)] :
-    boxTopology = @boxTopology' ι Y t := by
-  rw[boxTopology]
-  rw[boxTopology']
-  refine TopologicalSpace.ext ?_
-  sorry
 -/
+
 lemma open_preimage_box {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
   [t : ∀ i : ι, TopologicalSpace (Y i)] {k : ι} (s : Set (Y k)):
   IsOpen s → IsOpen ((fun (x : box Y) => x k) ⁻¹' s) := by
@@ -55,8 +50,6 @@ lemma open_preimage_box {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
   rw[generateFrom]
 
   refine GenerateOpen.basic (f ⁻¹' s) ?_
-
-
 
   use fun i => if h : i = k then h.symm ▸ s else Set.univ --gemini
   simp
@@ -98,57 +91,58 @@ lemma open_preimage_box {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
 lemma box_continuity_transfer  {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
     [t : ∀ i : ι, TopologicalSpace (Y i)] (j: ι):
     Continuous fun (point : (box Y)) => point j := by
+
   refine continuous_def.mpr ?_
 
   intro s h
   exact open_preimage_box _ h
 
 
---lemma identity_continuity
-#check continuous_induced_rng
+lemma identity_continuity_box_to_product {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
+    [t : ∀ i : ι, TopologicalSpace (Y i)] :
+    @Continuous (box Y) ((i : ι) → Y i) (boxTopology Y) Pi.topologicalSpace id := by
+    apply continuous_pi
 
-lemma box_topology_is_finer {ι : Type*} {Y : ι → Type*}
-          [t : ∀ i : ι, TopologicalSpace (Y i)] :
-           boxTopology ≤ @Pi.topologicalSpace ι Y t := by
+    intro idx
+    apply box_continuity_transfer
 
-  intro s hs
-  rw[Pi.topologicalSpace] at hs
 
-  --rw[induced] at hs
-  sorry
 
-  done
+
+#check continuous_induced_rng --lean found continuous_pi which is a version of this and
+                              --saved a lot of work
+
+lemma box_topology_is_finer {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
+    [t : ∀ i : ι, TopologicalSpace (Y i)] :
+    boxTopology Y ≤ Pi.topologicalSpace := by
+  refine continuous_id_iff_le.mp ?_
+  exact identity_continuity_box_to_product
+
 
 example  {X :Type} {T1: TopologicalSpace X} {T2:TopologicalSpace X}:
   T1 ≤ T2 ↔ ∀(s: Set X), @IsOpen _ T2 s → @IsOpen _ T1 s := by
     exact Iff.symm isOpen_implies_isOpen_iff
 
-theorem equivalence_to_product_if_finite {ι : Type*} {Y : ι → Type*}
-          [t : ∀ i : ι, TopologicalSpace (Y i)] [fin : Fintype ι]  :
-  boxTopology = @Pi.topologicalSpace ι Y t := by
-
-  --rw[boxTopology]
-  --rw[Pi.topologicalSpace]
-
+theorem equivalence_to_product_if_finite {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
+          [t : ∀ i : ι, TopologicalSpace (Y i)] [fin : Fintype ι]:
+  boxTopology Y = @Pi.topologicalSpace ι Y t := by
 
 
   refine TopologicalSpace.ext_iff.mpr ?_
   intro s
   constructor
-  ·
-    apply isOpen_implies_isOpen_iff.mpr
-
-    exact box_topology_is_finer
-
-
-  ·
-    apply isOpen_implies_isOpen_iff.mpr
-
-
-
+  · apply isOpen_implies_isOpen_iff.mpr
+    rw [← @isOpen_implies_isOpen_iff]
+    intro s Hs
+    rw[boxTopology] at Hs
+    rw[IsOpen] at Hs
 
     sorry
-  done
+
+
+  · apply isOpen_implies_isOpen_iff.mpr
+    exact box_topology_is_finer
+
 
 #check TopologicalSpace.le_def
 
