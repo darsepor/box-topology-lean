@@ -21,7 +21,6 @@ def boxTopology {ι : Type*} (Y : ι → Type*) [t : ∀ i, TopologicalSpace (Y 
     { B | ∃ (U : ∀ i, Set (Y i)), (∀ i, IsOpen (U i)) ∧ B = Set.pi Set.univ U }
 
 instance : TopologicalSpace (box Y):= boxTopology Y
---instance : TopologicalSpace ((i : ι) → Y i) := Pi.topologicalSpace
 /-
 instance boxTopology' {ι : Type*} {Y : ι → Type*} [t: ∀ i, TopologicalSpace (Y i)] :
     TopologicalSpace ((i : ι) → Y i) where
@@ -120,6 +119,8 @@ theorem box_topology_is_finer {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
 
   exact identity_continuity_box_to_product
 
+
+/-
 lemma identity_continuity_product_to_box_if_fin {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
     [t : ∀ i : ι, TopologicalSpace (Y i)][fin : Fintype ι] :
     @Continuous  ((i : ι) → Y i) (box Y) Pi.topologicalSpace (boxTopology Y)  id := by
@@ -133,6 +134,7 @@ lemma identity_continuity_product_to_box_if_fin {ι : Type*} {Y : ι → Type*} 
 
 
   sorry
+  -/
 --lemma pi_open {ι : Type*} {Y : ι → Type*} [t : ∀ i : ι, TopologicalSpace (Y i)]:
 
 
@@ -144,29 +146,37 @@ lemma identity_continuity_product_to_box_if_fin {ι : Type*} {Y : ι → Type*} 
 --    exact Iff.symm isOpen_implies_isOpen_iff
 
 theorem equivalence_to_product_if_finite {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
-          {g: ∀ a : ι, Set (Set (Y a))} {arg:  a → generateFrom (g a)}
-          [t : ∀ i : ι, TopologicalSpace (Y i)] [fin : Fintype ι]
-          :
-   @Pi.topologicalSpace ι Y t =boxTopology Y := by
-  have fingen := @pi_generateFrom_eq_finite ι Y g
+         [t : ∀ i : ι, TopologicalSpace (Y i)] [fin : Finite ι]:
+         @Pi.topologicalSpace ι Y t = boxTopology Y := by
+  let g := fun i => {U : Set (Y i) | @IsOpen (Y i) (t i) U}
+  have hg : ∀ a, ⋃₀ g a = univ := by
+    intro a
+    ext e
+    constructor
+    · simp
+
+    · intro ins
+      simp
+      use univ
+      simp
+      unfold g
+      simp
+
+  have fingen := @pi_generateFrom_eq_finite ι Y g fin
+
+  have same: ∀i, t i =  ((fun a ↦ generateFrom (g a)) i) := by
+    intro i
+
+    unfold g
+    simp
+    exact Eq.symm (generateFrom_setOf_isOpen (t i))
+  apply fingen at hg
+  unfold Pi.topologicalSpace at hg
+  simp_rw [← same] at hg
+  unfold Pi.topologicalSpace
+  rw [hg]
   unfold boxTopology
-  apply fingen
-  · sorry
-  ·
-    sorry
-
-
-  /-
-  refine TopologicalSpace.ext_iff.mpr ?_
-  intro s
-  constructor
-  · intro bop
-
-    sorry
-  · apply isOpen_implies_isOpen_iff.mpr
-
-    exact box_topology_is_finer
--/
+  exact rfl
 
 #check TopologicalSpace.le_def
 
