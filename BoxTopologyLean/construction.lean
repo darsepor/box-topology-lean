@@ -21,20 +21,10 @@ def boxTopology {ι : Type*} (Y : ι → Type*) [t : ∀ i, TopologicalSpace (Y 
     { B | ∃ (U : ∀ i, Set (Y i)), (∀ i, IsOpen (U i)) ∧ B = Set.pi Set.univ U }
 
 instance : TopologicalSpace (box Y):= boxTopology Y
-/-
-instance boxTopology' {ι : Type*} {Y : ι → Type*} [t: ∀ i, TopologicalSpace (Y i)] :
-    TopologicalSpace ((i : ι) → Y i) where
-  IsOpen B := ∀ (point : (i :ι)  → Y i), point ∈ B → ∃ (U : (i:ι) → Set (Y i)),
-           (∀ i, IsOpen (U i)) ∧ (∀ i, point i ∈ U i) ∧ (Set.pi Set.univ U ⊆ B)
-  isOpen_univ := by
-    intro point inu
 
-    use fun i => univ
-    simp
-  isOpen_sUnion := by
+#check box (fun (n: ℕ) ↦ ℝ)
+#synth TopologicalSpace (box (fun (n: ℕ) ↦ ℝ))
 
-  isOpen_inter := sorry
--/
 
 lemma open_preimage_box {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
   [t : ∀ i : ι, TopologicalSpace (Y i)] {k : ι} (s : Set (Y k)):
@@ -109,8 +99,7 @@ lemma identity_continuity_box_to_product {ι : Type*} {Y : ι → Type*} [Decida
 
 
 
-#check continuous_induced_rng --lean found continuous_pi which is a version of this and
-                              --saved a lot of work
+#check continuous_induced_rng
 
 theorem box_topology_is_finer {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
     [t : ∀ i : ι, TopologicalSpace (Y i)] :
@@ -119,31 +108,11 @@ theorem box_topology_is_finer {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
 
   exact identity_continuity_box_to_product
 
-
-/-
-lemma identity_continuity_product_to_box_if_fin {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
-    [t : ∀ i : ι, TopologicalSpace (Y i)][fin : Fintype ι] :
-    @Continuous  ((i : ι) → Y i) (box Y) Pi.topologicalSpace (boxTopology Y)  id := by
-  refine continuous_generateFrom_iff.mpr ?_
-  intro s sin
-  unfold IsOpen
-  unfold TopologicalSpace.IsOpen
-  unfold id
-  simp
+#print axioms box_topology_is_finer
 
 
-
-  sorry
-  -/
---lemma pi_open {ι : Type*} {Y : ι → Type*} [t : ∀ i : ι, TopologicalSpace (Y i)]:
-
-
-
-  --sorry
 #check pi_generateFrom_eq_finite
---example  {X :Type} {T1: TopologicalSpace X} {T2:TopologicalSpace X}:
---  T1 ≤ T2 ↔ ∀(s: Set X), @IsOpen _ T2 s → @IsOpen _ T1 s := by
---    exact Iff.symm isOpen_implies_isOpen_iff
+
 
 theorem equivalence_to_product_if_finite {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
          [t : ∀ i : ι, TopologicalSpace (Y i)] [fin : Finite ι]:
@@ -181,5 +150,47 @@ theorem equivalence_to_product_if_finite {ι : Type*} {Y : ι → Type*} [Decida
 #check TopologicalSpace.le_def
 
 
+#print axioms equivalence_to_product_if_finite
+--bounded open
+--unbounded open
+
+abbrev bounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := {a | ∃M, ∀n, |a n| ≤ M}
+
+abbrev unbounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := bounded_seqᶜ
+lemma bounded_seq_open_in_box: IsOpen bounded_seq := by
+
+  sorry
+
+lemma unbounded_seq_open_in_box: IsOpen unbounded_seq := by
+
+  sorry
+lemma disconnected_box_seq: ¬PreconnectedSpace (box (fun (_: ℕ) ↦ ℝ)) := by
+
+  by_contra h
+
+  unfold box at h
+  simp at h
+  have inter: bounded_seq ∩ unbounded_seq = ∅ := by
+    exact inter_compl_self bounded_seq
+
+  rw[@preconnectedSpace_iff_univ] at h
+  have unio: bounded_seq ∪ unbounded_seq = univ := by
+    exact union_compl_self bounded_seq
+
+  rw[←unio] at h
+  have unbO : IsOpen unbounded_seq := by
+    exact unbounded_seq_open_in_box
+  have bO : IsOpen bounded_seq := by
+    exact bounded_seq_open_in_box
+  simp_rw [IsPreconnected] at h
+  simp at h
+  specialize h bounded_seq unbounded_seq
+  apply h at bO
+  apply bO at unbO
+  apply unbO at unio
+  simp at unio
+
+
+  sorry
 
 end BoxTopology
