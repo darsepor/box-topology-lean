@@ -157,16 +157,30 @@ theorem equivalence_to_product_if_finite {ι : Type*} {Y : ι → Type*} [Decida
 abbrev bounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := {a | ∃M, ∀n, |a n| ≤ M}
 
 abbrev unbounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := bounded_seqᶜ
+
 lemma bounded_seq_open_in_box: IsOpen bounded_seq := by
+
   unfold IsOpen
   unfold TopologicalSpace.IsOpen
   unfold instTopologicalSpaceBox
   unfold boxTopology
   simp_rw[generateFrom]
   refine GenerateOpen.basic bounded_seq ?_
-  rw[bounded_seq]
+  refine mem_setOf.mpr ?_
+  --this is not right probably. construct open sets with union above somewhere?
+  --need an infinite collection of sequences of open sets. then union at the index dim
 
 
+
+
+  --have boundH: ∃M, |r| ≤ M → ∃L, |r| < L := by
+
+  --let seq: box fun x ↦ ℝ :=
+
+  --have opH: ∃ M, ∀ (n : ℕ), |seq n| ≤ M →
+
+
+  --foralli.zulip.cs.aalto.fi
 
   sorry
 
