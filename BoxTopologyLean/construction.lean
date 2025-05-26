@@ -158,6 +158,15 @@ abbrev bounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := {a | ∃M, ∀n, |a n| �
 
 abbrev unbounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := bounded_seqᶜ
 lemma bounded_seq_open_in_box: IsOpen bounded_seq := by
+  unfold IsOpen
+  unfold TopologicalSpace.IsOpen
+  unfold instTopologicalSpaceBox
+  unfold boxTopology
+  simp_rw[generateFrom]
+  refine GenerateOpen.basic bounded_seq ?_
+  rw[bounded_seq]
+
+
 
   sorry
 
@@ -185,12 +194,37 @@ lemma disconnected_box_seq: ¬PreconnectedSpace (box (fun (_: ℕ) ↦ ℝ)) := 
   simp_rw [IsPreconnected] at h
   simp at h
   specialize h bounded_seq unbounded_seq
+
   apply h at bO
   apply bO at unbO
+
   apply unbO at unio
-  simp at unio
+
+  rw[unbounded_seq] at unio
+  rw[unbounded_seq] at inter
+  rw[inter] at unio
+  have nebO: bounded_seq.Nonempty := by
+    rw[bounded_seq]
+    refine nonempty_def.mpr ?_
+    use fun n: ℕ => 5
+    simp
+    use 6
+    linarith
+
+  apply unio at nebO
+  have neunbO: unbounded_seq.Nonempty := by
+    rw[unbounded_seq]
+    rw[bounded_seq]
+    refine nonempty_def.mpr ?_
+    use fun n: ℕ => n
+    simp
+    exact fun x ↦ exists_nat_gt x
+
+  rw[unbounded_seq] at neunbO
+  apply nebO at neunbO
+  --have f : (∅ : Set (ℕ →  ℝ)).Nonempty → False := by
+  simp at neunbO
 
 
-  sorry
 
 end BoxTopology
