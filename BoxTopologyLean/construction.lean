@@ -3,8 +3,10 @@ import Mathlib.Data.Set.Lattice
 import Mathlib.Topology.Order
 import Mathlib.Topology.Constructions
 import Mathlib
+
+
 namespace BoxTopology
-open Set Filter TopologicalSpace Topology
+open Set Filter TopologicalSpace Topology Metric
 
 
 
@@ -22,8 +24,8 @@ def boxTopology {ι : Type*} (Y : ι → Type*) [t : ∀ i, TopologicalSpace (Y 
 
 instance : TopologicalSpace (box Y):= boxTopology Y
 
-#check box (fun (n: ℕ) ↦ ℝ)
-#synth TopologicalSpace (box (fun (n: ℕ) ↦ ℝ))
+#check box (fun (_: ℕ) ↦ ℝ)
+#synth TopologicalSpace (box (fun (_: ℕ) ↦ ℝ))
 
 
 lemma open_preimage_box {ι : Type*} {Y : ι → Type*} [DecidableEq ι]
@@ -158,36 +160,122 @@ abbrev bounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := {a | ∃M, ∀n, |a n| �
 
 abbrev unbounded_seq: Set (box (fun (_: ℕ) ↦ ℝ)) := bounded_seqᶜ
 
+
+def elements_at_n (n : ℕ) : Set ℝ := Set.image (fun (s : ℕ → ℝ) ↦ s n) bounded_seq
+
+example {n : ℕ}:elements_at_n n = Set.univ := by
+
+  unfold elements_at_n
+  unfold bounded_seq
+  unfold Set.image
+  simp
+  refine Eq.symm (ext ?_)
+  simp
+  intro x
+  let const := fun _ : ℕ => x
+  use const
+  constructor
+  · refine mem_setOf.mpr ?_
+    use |x|
+    simp_rw[const]
+    simp
+  · simp_rw[const]
+
+
+#check Metric.ball
+def seq_ball (a : ℕ → ℝ) : Set (box (fun (_: ℕ) ↦ ℝ)) := {x | ∀ n : ℕ, x n ∈ Metric.ball (a n) 1}
+
+
+lemma seq_ball_open_and_around (a : ℕ → ℝ) : IsOpen (seq_ball a) ∧ a ∈ seq_ball a := by
+  constructor
+  · unfold IsOpen
+    unfold TopologicalSpace.IsOpen
+    unfold instTopologicalSpaceBox
+    unfold boxTopology
+    simp_rw[generateFrom]
+    refine GenerateOpen.basic (seq_ball a) ?_
+
+    refine mem_setOf.mpr ?_
+    let can := fun n : ℕ => Metric.ball (a n) 1
+    use can
+    constructor
+    · intro n
+      unfold can
+      exact isOpen_ball
+
+    · exact Subset.antisymm (fun ⦃a_1⦄ a i a_2 ↦ a i) fun ⦃a⦄ a n ↦ a n trivial
+
+  · unfold seq_ball
+
+    refine mem_setOf.mpr ?_
+    simp
+
+
+
 lemma bounded_seq_open_in_box: IsOpen bounded_seq := by
+  refine isOpen_iff_forall_mem_open.mpr ?_
+  intro a aH
+  use seq_ball a
+  constructor
+  · unfold seq_ball
+    unfold bounded_seq
+    unfold bounded_seq at aH
+    simp at aH
+    simp
+    intro a1 a1H
+    cases' aH with aM aH
+    use aM + 1
+    intro n
+    specialize a1H n
+    specialize aH n
+    simp_rw[dist] at a1H
+    have i1: |a1 n| = |a1 n - a n + a n| := by
+      simp
+    have i2: |a1 n| ≤ |a1 n - a n| + |a n| := by
+      rw[i1]
+      exact abs_add_le (a1 n - a n) (a n)
+    linarith
 
-  unfold IsOpen
-  unfold TopologicalSpace.IsOpen
-  unfold instTopologicalSpaceBox
-  unfold boxTopology
-  simp_rw[generateFrom]
-  refine GenerateOpen.basic bounded_seq ?_
-  refine mem_setOf.mpr ?_
-  --this is not right probably. construct open sets with union above somewhere?
-  --need an infinite collection of sequences of open sets. then union at the index dim
+
+
+  · exact seq_ball_open_and_around a
 
 
 
 
-  --have boundH: ∃M, |r| ≤ M → ∃L, |r| < L := by
 
-  --let seq: box fun x ↦ ℝ :=
-
-  --have opH: ∃ M, ∀ (n : ℕ), |seq n| ≤ M →
-
-
-  --foralli.zulip.cs.aalto.fi
-
-  sorry
 
 lemma unbounded_seq_open_in_box: IsOpen unbounded_seq := by
+  unfold unbounded_seq
+  unfold bounded_seq
+  refine isOpen_iff_forall_mem_open.mpr ?_
+  intro a aH
+  use seq_ball a
+  constructor
+  · unfold seq_ball
+    simp at aH
+    simp
+    intro a1 a1H
+    simp
+    intro L
+    specialize aH (L + 1)
+    simp at a1H
+    cases' aH with n aH
+    specialize a1H n
+    simp_rw[dist] at a1H
+    use n
+    have i1 : |a n| - |a1 n| ≤ |a n - a1 n| := by exact abs_sub_abs_le_abs_sub (a n) (a1 n)
 
-  sorry
-lemma disconnected_box_seq: ¬PreconnectedSpace (box (fun (_: ℕ) ↦ ℝ)) := by
+    have i2 : |a n - a1 n| < 1 := by
+      rw [@abs_sub_comm]
+      exact a1H
+
+    linarith
+
+  · exact seq_ball_open_and_around a
+
+
+theorem disconnected_box_seq: ¬PreconnectedSpace (box (fun (_: ℕ) ↦ ℝ)) := by
 
   by_contra h
 
@@ -239,6 +327,6 @@ lemma disconnected_box_seq: ¬PreconnectedSpace (box (fun (_: ℕ) ↦ ℝ)) := 
   --have f : (∅ : Set (ℕ →  ℝ)).Nonempty → False := by
   simp at neunbO
 
-
+#print axioms disconnected_box_seq
 
 end BoxTopology
